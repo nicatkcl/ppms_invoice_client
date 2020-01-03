@@ -1,0 +1,4 @@
+*.pyc
+__pycache__/
+.vscode
+ppms_invoice_client/invoices
