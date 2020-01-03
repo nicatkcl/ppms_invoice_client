@@ -8,7 +8,7 @@ from exchangelib import (
 )
 
 
-def send(recipients, invoice_ref, email_settings):
+def send(recipients, invoice_ref, email_settings, progress=None):
     """Construct email from Recipient object and send.
 
     Parameters
@@ -19,6 +19,7 @@ def send(recipients, invoice_ref, email_settings):
         Identifier of the invoice being emailed
     email_settings : dict
         configuration settings for exchange server
+    progress: PyQt progress bar
     """
     username = email_settings["username"]
     password = email_settings["password"]
@@ -36,7 +37,7 @@ def send(recipients, invoice_ref, email_settings):
         access_type=DELEGATE
     )
     cc_address = None
-    for recipient in recipients:
+    for rid, recipient in enumerate(recipients):
         print(recipient.bcode)
 
         if email_settings["test_mode"]:
@@ -64,24 +65,21 @@ def send(recipients, invoice_ref, email_settings):
                 ]
                 cc_address = ""
  
-        try:
-            m = Message(
-                account=account,
-                folder=account.sent,
-                subject=(
-                    'NIC@KCL: Invoice {0}'
-                    .format(invoice_ref)
-                ),
-                to_recipients=to_address,
-                cc_recipients=[]
-            )
-            if cc_address:
-                m.cc_recipients = cc_address
+        m = Message(
+            account=account,
+            folder=account.sent,
+            subject=(
+                'NIC@KCL: Invoice {0}'
+                .format(invoice_ref)
+            ),
+            to_recipients=to_address,
+            cc_recipients=[]
+        )
+        if cc_address:
+            m.cc_recipients = cc_address
 
-            print("address: {}".format(m.to_recipients))
-            print("cc_address: {}".format(m.cc_recipients))
-            m.body = HTMLBody(recipient.html)
-            m.send_and_save()
-        except:
-            print('could not send email about {}'.format(invoice_ref))
-            pass
+        print("address: {}".format(m.to_recipients))
+        print("cc_address: {}".format(m.cc_recipients))
+        m.body = HTMLBody(recipient.html)
+        m.send_and_save()
+        progress.emit(rid)

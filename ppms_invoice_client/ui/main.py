@@ -15,7 +15,7 @@ from .dialogs import (
     PreviewDialog, GeneralDialog
 )
 from . import threads
-# from .models import AutoAssistInvoiceTableModel, TrainInvoiceTableModel
+from .progress import Progress
 
 
 class Window(QtWidgets.QMainWindow):
@@ -267,17 +267,19 @@ class Window(QtWidgets.QMainWindow):
         
         # get the row number
         selected_rows = table.selectionModel().selectedRows()
-        rid = selected_rows[0].row()
-        chk = table.cellWidget(rid, 0)
-        bcode = table.item(rid, 1).text()
-        tables = [self.ui.auto_table, self.ui.assist_table, self.ui.train_table]
-        for table in tables:
-            for row in range(table.rowCount()):
-                if table.item(row, 1).text() == bcode:
-                    if chk.isChecked():
-                        table.cellWidget(row, 0).setChecked(True)
-                    else:
-                        table.cellWidget(row, 0).setChecked(False)
+        # if there are selected_rows (there won't be when 'select all' is used)
+        if selected_rows:
+            rid = selected_rows[0].row()
+            chk = table.cellWidget(rid, 0)
+            bcode = table.item(rid, 1).text()
+            tables = [self.ui.auto_table, self.ui.assist_table, self.ui.train_table]
+            for table in tables:
+                for row in range(table.rowCount()):
+                    if table.item(row, 1).text() == bcode:
+                        if chk.isChecked():
+                            table.cellWidget(row, 0).setChecked(True)
+                        else:
+                            table.cellWidget(row, 0).setChecked(False)
 
     @pyqtSlot()
     def selectAll(self):
@@ -345,15 +347,23 @@ class Window(QtWidgets.QMainWindow):
         email_settings["copy_manager"] = copy_manager
         email_settings["manager_address"] = self.manager_email
 
+        # progress bar
+        self.email_progress = Progress(self, len(items) - 1, 'Sending email')
+
         # start the send email thread passing items and sendto flag
         worker = threads.Worker(
             threads._sendEmail,
             items, sendto, ref, self.invoice_folder, self.message_text,
             facility_info, invoice_columns, email_settings
         )
+        worker.signals.progress.connect(self.updateEmailProgress)
+        worker.signals.finished.connect(self.onEmailFinished)
         worker.signals.error.connect(self.onError)
 
-        self.threadpool.start(worker)        
+        if not self.email_progress.isVisible():          
+            self.email_progress.show()        
+
+        self.threadpool.start(worker)   
 
     # signal recievers
     def onConnectComplete(self, result):
@@ -532,6 +542,14 @@ class Window(QtWidgets.QMainWindow):
         msgBox.setIcon(QtWidgets.QMessageBox.Critical)
         msgBox.setText(str(err[1]))
         msgBox.setWindowTitle("Error")
-        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)   
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
+
+    def updateEmailProgress(self, val):
+        if self.email_progress.isVisible():
+            self.email_progress.updateBar(val)
+
+    def onEmailFinished(self):
+        if self.email_progress.isVisible():
+            self.email_progress.close()           
 
 

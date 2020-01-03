@@ -23,7 +23,6 @@ else:
 
 from .models import Invoice, InvoiceItem
 from ..utils.recipient import recipient_from_group
-from ..utils import session as sess
 from ..utils.html_convert import create_html
 from ..utils import send_email   
 
@@ -378,7 +377,7 @@ def _fetchInvoice(url, key, ref, progress_callback=None,
     session_types = sorted(details['Session Type'].unique())
 
     invoice = Invoice(ref)
-    for bcode in bcodes[0:3]:
+    for bcode in bcodes:
         item_details = details[details['Account number'] == bcode]
         group_ref = item_details['Group'].values[0]
         group = _getGroup(url, key, group_ref)
@@ -544,7 +543,7 @@ def _sendEmail(items, sendto, ref, folder, message_text,
             item.group.send_only_admin = True
 
     try:
-        send_email.send(items, ref, email_settings)
+        send_email.send(items, ref, email_settings, progress=progress_callback)
     except:
         raise EmailError("Problem sending email")
 
