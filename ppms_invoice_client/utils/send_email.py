@@ -82,4 +82,6 @@ def send(recipients, invoice_ref, email_settings, progress=None):
         print("cc_address: {}".format(m.cc_recipients))
         m.body = HTMLBody(recipient.html)
         m.send_and_save()
-        progress.emit(rid)
+        
+        if progress is not None:
+            progress.emit(rid)
