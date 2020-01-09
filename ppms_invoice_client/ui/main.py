@@ -112,6 +112,7 @@ class Window(QtWidgets.QMainWindow):
         settings.setValue('fees_chk', self.fees_chk)
         settings.setValue('final_amount_chk', self.final_amount_chk)
         settings.setValue('message_text', self.message_text)
+        settings.setValue('facility_code', self.facility_code)
         settings.setValue('facility_name', self.facility_name)
         settings.setValue('facility_email', self.facility_email)        
         settings.setValue('manager_name', self.manager_name)
@@ -142,6 +143,7 @@ class Window(QtWidgets.QMainWindow):
         self.fees_chk = settings.value("fees_chk", type=bool)
         self.final_amount_chk = settings.value("final_amount_chk", type=bool)
         self.message_text = settings.value("message_text", type=str)
+        self.facility_code = settings.value("facility_code", type=str)
         self.facility_name = settings.value("facility_name", type=str)
         self.facility_email = settings.value("facility_email", type=str)        
         self.manager_name = settings.value("manager_name", type=str)
@@ -550,6 +552,15 @@ class Window(QtWidgets.QMainWindow):
 
     def onEmailFinished(self):
         if self.email_progress.isVisible():
-            self.email_progress.close()           
+            self.email_progress.close()
+
+        ref = self.ui.reference_combo.currentText()
+        worker = threads.Worker(
+            threads._writeToExcel, ref, self.invoice,
+            self.facility_code, self.invoice_folder
+        )
+        worker.signals.error.connect(self.onError)
+
+        self.threadpool.start(worker)           
 
 

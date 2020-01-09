@@ -15,6 +15,7 @@ qtpy = "*"
 jinja2 = "*"
 namedentities = "*"
 exchangelib = "*"
+openpyxl = "==3.0.1"
 
 [requires]
 python_version = "3.7"

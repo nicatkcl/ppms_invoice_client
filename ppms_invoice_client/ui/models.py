@@ -166,6 +166,13 @@ class InvoiceItem:
                 filtered.append(session)
         return filtered
 
+    @property
+    def final_amount(self):
+        total = 0.0
+        for session in self.sessions:
+            total += session.final_amount
+        return total
+
     def total_charge(self, sessions):
         total = 0.0
         for session in sessions:
@@ -241,6 +248,27 @@ class Invoice:
 
     def __len__(self):
         return self.n_items
+
+    @property
+    def bcodes(self):
+        bcodes = []
+        for item in self.items:
+            bcodes.append(item.bcode)
+        return set(bcodes)
+
+    @property
+    def amounts(self):
+        amounts = []
+        for item in self.items:
+            amounts.append(item.final_amount)
+        return amounts
+
+    @property
+    def group_heads(self):
+        groups = []
+        for item in self.items:
+            groups.append(item.group.heademail)
+        return groups
 
     def append(self, item):
         self.items.append(item)

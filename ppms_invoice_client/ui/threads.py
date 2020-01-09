@@ -103,6 +103,9 @@ class Worker(QRunnable):
 
 ####
 # Helpers for thread functions
+def _interleave(list1, list2):
+    return [val for pair in zip(list1, list2) for val in pair]
+
 def _processMessageText(message_text, invoice_date, facility_info):
     """
     Takes message text from dialog and inserts facility info and formats
@@ -377,7 +380,7 @@ def _fetchInvoice(url, key, ref, progress_callback=None,
     session_types = sorted(details['Session Type'].unique())
 
     invoice = Invoice(ref)
-    for bcode in bcodes:
+    for bcode in bcodes[0:3]:
         item_details = details[details['Account number'] == bcode]
         group_ref = item_details['Group'].values[0]
         group = _getGroup(url, key, group_ref)
@@ -429,7 +432,11 @@ def _messageForBcode(item, ref, folder, message_text, facility_info,
         InvoiceItem being processed.
     """                     
 
-    date = datetime.strptime(ref[17:25], "%Y%m%d")
+    if 'DRAFT' in ref:
+        date = datetime.strptime(ref[17:25], "%Y%m%d")
+    else:
+        date = datetime.strptime(ref[17:], "%Y%m%d")
+
     sessions_month = "December"
     if int(date.strftime("%m")) > 1:
         sessions_month = datetime.strptime(str(int(date.strftime("%m")) - 1), "%m")
@@ -546,6 +553,74 @@ def _sendEmail(items, sendto, ref, folder, message_text,
         send_email.send(items, ref, email_settings, progress=progress_callback)
     except:
         raise EmailError("Problem sending email")
+
+def _writeToExcel(invoice_ref, invoice, facility_code, invoice_folder,
+                  progress_callback=None, custom_callback=None):
+    """Write the invoice to Excel using the KCL finance template.
+    
+    Arguments
+    ---------
+        invoice: Invoice instance
+    """
+    if 'DRAFT' in invoice_ref:
+        ref_date = datetime.strptime(invoice_ref[17:25], "%Y%m%d")
+    else:
+        ref_date = datetime.strptime(invoice_ref[17:], "%Y%m%d")
+
+    # get month and year from ref
+    month = int(ref_date.strftime("%m")) - 1
+    year = int(ref_date.strftime("%Y"))
+
+    if month == 0:
+        month = 12
+        year = year - 1
+    sess_month = datetime.strptime(str(month), "%m")
+    sessions_month = sess_month.strftime("%B")
+    sessions_year = str(year)
+
+    bcodes = invoice.bcodes
+    amounts = invoice.amounts
+    group_heads = invoice.group_heads
+
+    # make a list of equal length with NIC 
+    # activity code and interleave
+    nic_codes = [facility_code for i in range(len(invoice))]
+    activity_codes = _interleave(bcodes, nic_codes)
+
+    # make a list of equal length with NIC 
+    # amounts and interleave
+    nic_amounts = [a * -1 for a in amounts]
+    charges = _interleave(amounts, nic_amounts)
+
+    # include the 'account codes'
+    transaction_account = [4213 for i in range(len(invoice))]
+    nic_account = [4113 for i in range(len(nic_codes))]
+    account_codes = _interleave(transaction_account, nic_account)
+
+    # include description of transaction
+    groups_for_descp = _interleave(group_heads, group_heads)
+    description = [
+        ('NIC charges for {} {} for {}'.
+        format(sessions_month, sessions_year, groups_for_descp[i]))
+        for i in range(len(groups_for_descp))
+    ]
+
+    # make the invoice from the lists
+    print(len(description), len(charges), len(account_codes), len(activity_codes))
+    invoice_df = pd.DataFrame({
+        'Description': description,
+        'Amounnt': charges,
+        'account code': account_codes,
+        'activity code': activity_codes
+    })
+
+    print(invoice_df.head())
+
+    # create filepath
+    filepath = '{0}\\{1} {0} NIC user charges new template.xlsx'.format(sessions_year, sessions_month)
+    path = os.path.join(invoice_folder, filepath)
+    # save invoice
+    invoice_df.to_excel(path, sheet_name='Voucher Data', index=False)    
 
 
 if __name__ == "__main__":

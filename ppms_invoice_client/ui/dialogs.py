@@ -144,6 +144,7 @@ class FacilityDialog(QtWidgets.QDialog):
         self.ui = facility_UI.Ui_Dialog()
         self.ui.setupUi(self)
 
+        self.ui.facility_code.setText(self.parent.facility_code)
         self.ui.facility_name.setText(self.parent.facility_name)
         self.ui.facility_email.setText(self.parent.facility_email)
         self.ui.manager_name.setText(self.parent.manager_name)
@@ -154,6 +155,7 @@ class FacilityDialog(QtWidgets.QDialog):
 
     @pyqtSlot()
     def okClicked(self):
+        self.parent.facility_code = self.ui.facility_code.text()
         self.parent.facility_name = self.ui.facility_name.text()
         self.parent.facility_email = self.ui.facility_email.text()
         self.parent.manager_name = self.ui.manager_name.text()
