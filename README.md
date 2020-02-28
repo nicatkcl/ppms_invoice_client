@@ -64,5 +64,10 @@ The app needs some configuration before it can be used. These can be set in the 
 
 **Make sure to run the following in test mode first to make sure the invoice emails are being formatted as you want.**
 
-Select the rows from the master invoice table that you want to generate invoices for. From the 'send to' drop down select who is going to receive the invoices by email. Use the 'copy manager' check box to choose whether to copy in the facility manager. Press the 'send invoices' button to generate and email the invoices. You find the email message content saved as html in the 'invoices folder' along with an xlsx format file with a summary that can be provide to your finance department.
+1. Select the rows from the master invoice table that you want to generate invoices for.
+2. From the 'send to' drop down select who is going to receive the invoices by email.
+3. Use the 'copy manager' check box to choose whether to copy in the facility manager.
+4. Press the 'send invoices' button to generate and email the invoices.
+
+You should find the email message content saved as html in the 'invoices folder' along with an xlsx format file with a summary that can be provide to your finance department.
 
